@@ -380,6 +380,8 @@ if uploaded_file is not None:
     reversed_columns = ['ML', 'Odds']
     styled_df = df.style.background_gradient(cmap=cmap, subset=standard_columns, axis=0)
     styled_df = styled_df.background_gradient(cmap=reversed_cmap, subset=reversed_columns, axis=0)
+    styled_df = styled_df.style.format('{:.2f}', subset = ['ML', 'PowerScore', 'Par', 'Ped', 'JTScore', 'WorksScore', 'ClassScore', 'Speed', 'BSpeed', 'EP', 'LP', 'Final Score', 'Odds', 'Value'])  
+
 
     st.dataframe(styled_df, hide_index=True)
 

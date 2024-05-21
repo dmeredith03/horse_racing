@@ -373,8 +373,8 @@ if uploaded_file is not None:
     st.dataframe(rdf[rdf['Race'] == race_choice], hide_index = True)
     
     # Get the colormap and its reversed version
-    cmap = plt.cm.get_cmap('Reds')
-    reversed_cmap = plt.cm.get_cmap('Reds_r')
+    cmap = matplotlib.cm.get_cmap('Reds')
+    reversed_cmap = matplotlib.cm.get_cmap('Reds_r')
     df = df[df['Race'] == race_choice]
     standard_columns = ['PowerScore', 'Par', 'Ped', 'JTScore', 'WorksScore', 'ClassScore', 'Speed', 'BSpeed', 'EP', 'LP', 'Final Score', 'Value']
     reversed_columns = ['ML', 'Odds']

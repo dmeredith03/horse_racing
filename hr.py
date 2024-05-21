@@ -6,8 +6,6 @@ import numpy as np
 import re
 import math
 
-from streamlit_dynamic_filters import DynamicFilters
-
 st.set_page_config(page_title='Race Info', page_icon=None, layout="wide", initial_sidebar_state="auto", menu_items=None)
 uploaded_file = st.sidebar.file_uploader("Choose a file")
 if uploaded_file is not None:

@@ -322,7 +322,7 @@ if uploaded_file is not None:
         race_scores['Final Score'] = average_score_per_row
         race_scores = race_scores.loc[:,~race_scores.columns.duplicated()].copy()
 
-        race_scores['Odds'] = race_scores['Final Score'] ** 25
+        race_scores['Odds'] = race_scores['Final Score'] ** 20
         total_odds = race_scores['Odds'].sum()
         race_scores['Odds'] = 1/(race_scores['Odds']/total_odds) - 1
         race_scores['Odds'] = race_scores['Odds'].clip(upper = 75, axis=0)

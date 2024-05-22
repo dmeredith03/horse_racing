@@ -144,6 +144,8 @@ if uploaded_file is not None:
             }
 
             praces = pd.concat([praces, pd.DataFrame([new_race])], ignore_index=True)
+        praces['FIN'] = praces.apply(lambda row: (row['Starters'] if (isinstance(row['FIN'], str) or (np.isnan(row['FIN Adj']))) else row['FIN Adj']) if isinstance(row['FIN'], str) else row['FIN'], axis=1)
+        praces['RaceScore'] = praces.apply(lambda row: 100 + 100 * (0.5 - float(row['FIN'])/row['Starters']) * min(row['Starters'] ** 0.5/5, 1), axis=1)
 
     ### CHANGE FROM WET ###
 
@@ -235,6 +237,13 @@ if uploaded_file is not None:
             chr = hr[(hr['BSpd'] > 40) & (hr['Surface'].str.upper() == surface.upper())]
             chr['Race No'] = list(range(len(chr)))
             chr['Race No'] = chr['Race No'] + 1
+
+            races1 = chr[chr['Race No'] <= 1]['RaceScore'].mean()
+            races3 = chr[chr['Race No'] <= 3]['RaceScore'].mean()
+            races5 = chr[chr['Race No'] <= 5]['RaceScore'].mean()
+            racescore = (races1 + races3 + races5)/3
+
+
             spd1 = chr[chr['Race No'] <= 1]['Spd'].mean()
             spd3 = chr[chr['Race No'] <= 3]['Spd'].mean()
             spd5 = chr[chr['Race No'] <= 5]['Spd'].mean()
@@ -293,6 +302,7 @@ if uploaded_file is not None:
                 'JTScore': round(jtscore,1),
                 'WorksScore': round(workscore,1),
                 'ClassScore': round(classscore,1),
+                'RaceScore': round(racescore, 1),
                 'SpeedScore': round(spdscore,1),
                 'Speed': round(spdscore, 1),
                 'BSpeedScore': round(bspdscore,1),
@@ -308,10 +318,10 @@ if uploaded_file is not None:
 
     def get_fs(horse_scores, race):
         race_scores = horse_scores[horse_scores['Race'] == race]
-        race_constants = race_scores[['Race', 'Horse', 'PP', 'ML', 'Style', 'PowerScore', 'Par', 'Ped', 'JTScore', 'WorksScore', 'ClassScore', 'Speed', 'BSpeed', 'EP', 'LP']]
+        race_constants = race_scores[['Race', 'Horse', 'PP', 'ML', 'Style', 'PowerScore', 'Par', 'Ped', 'JTScore', 'WorksScore', 'ClassScore', 'RaceScore', 'Speed', 'BSpeed', 'EP', 'LP']]
 
-        race_scores = race_scores[['PowerScore', 'PowerScore', 'ParScore', 'ParScore','ParScore', 'ParScore', 'ParScore' ,'PedScore', 'JTScore', 'WorksScore', 'ClassScore', 
-        'SpeedScore', 'BSpeedScore', 'BSpeedScore', 'BSpeedScore', 'EPScore', 'LPScore']]
+        race_scores = race_scores[['PowerScore', 'ParScore', 'ParScore','ParScore','PedScore', 'JTScore', 'WorksScore', 'ClassScore', 
+        'RaceScore', 'RaceScore', 'RaceScore', 'SpeedScore', 'BSpeedScore', 'BSpeedScore', 'BSpeedScore', 'EPScore', 'EPScore', 'LPScore', 'LPScore']]
         
         # Calculate column averages
         column_means = race_scores.mean()
@@ -322,15 +332,15 @@ if uploaded_file is not None:
         race_scores['Final Score'] = average_score_per_row
         race_scores = race_scores.loc[:,~race_scores.columns.duplicated()].copy()
 
-        race_scores['Odds'] = race_scores['Final Score'] ** 22
+        race_scores['Odds'] = race_scores['Final Score'] ** 20
         total_odds = race_scores['Odds'].sum()
         race_scores['Odds'] = 1/(race_scores['Odds']/total_odds) - 1
         race_scores['Odds'] = race_scores['Odds'].clip(upper = 75, axis=0)
 
 
-        race_scores[['Race', 'Horse', 'PP', 'ML', 'Style', 'PowerScore', 'Par', 'Ped', 'JTScore', 'WorksScore', 'ClassScore', 'Speed', 'BSpeed', 'EP', 'LP']] = race_constants
+        race_scores[['Race', 'Horse', 'PP', 'ML', 'Style', 'PowerScore', 'Par', 'Ped', 'JTScore', 'WorksScore', 'ClassScore', 'RaceScore', 'Speed', 'BSpeed', 'EP', 'LP']] = race_constants
         race_scores['Value'] = ((race_scores['ML']) * (1/(race_scores['Odds'] + 1))) - (1 - (1/(race_scores['Odds'] +1)))
-        final_scores = race_scores[['Race', 'Horse', 'PP', 'ML', 'Style', 'PowerScore', 'Par', 'Ped', 'JTScore', 'WorksScore', 'ClassScore', 'Speed', 'BSpeed', 'EP', 'LP', 'Final Score', 'Odds', 'Value']].sort_values(by = 'Value', ascending = False)
+        final_scores = race_scores[['Race', 'Horse', 'PP', 'ML', 'Style', 'PowerScore', 'Par', 'Ped', 'JTScore', 'WorksScore', 'ClassScore', 'RaceScore', 'Speed', 'BSpeed', 'EP', 'LP', 'Final Score', 'Odds', 'Value']].sort_values(by = 'Value', ascending = False)
 
         return final_scores
 
@@ -343,7 +353,7 @@ if uploaded_file is not None:
     hdf = get_data(horses)
     rdf = get_data(races)
     pdf = get_data(praces)[['Race', 'PP', 'Days Since', 'Date', 'Track', 'Surface', 'Distance', 'Condition',
-        'Race Type', 'Speed Par', 'Odds', 'FIN', '2fP','4fP','6fP','LP','BSpd','Spd','Comment']]
+        'Race Type', 'Speed Par', 'Odds', 'FIN', '2fP','4fP','6fP','LP','BSpd','Spd','Comment', 'RaceScore']]
     wdf = get_data(works)
 
     rdf['Date'] = pd.to_datetime(rdf['Date'], format='%Y%m%d').dt.date
@@ -376,11 +386,11 @@ if uploaded_file is not None:
     cmap = plt.get_cmap('Reds')
     reversed_cmap = plt.get_cmap('Reds_r')
     df = df[df['Race'] == race_choice]
-    standard_columns = ['PowerScore', 'Par', 'Ped', 'JTScore', 'WorksScore', 'ClassScore', 'Speed', 'BSpeed', 'EP', 'LP', 'Final Score', 'Value']
+    standard_columns = ['PowerScore', 'Par', 'Ped', 'JTScore', 'WorksScore', 'ClassScore', 'RaceScore', 'Speed', 'BSpeed', 'EP', 'LP', 'Final Score', 'Value']
     reversed_columns = ['ML', 'Odds']
     styled_df = df.style.background_gradient(cmap=cmap, subset=standard_columns, axis=0)
     styled_df = styled_df.background_gradient(cmap=reversed_cmap, subset=reversed_columns, axis=0)
-    styled_df = styled_df.format('{:.2f}', subset = ['ML', 'PowerScore', 'Par', 'Ped', 'JTScore', 'WorksScore', 'ClassScore', 'Speed', 'BSpeed', 'EP', 'LP', 'Final Score', 'Odds', 'Value'])  
+    styled_df = styled_df.format('{:.2f}', subset = ['ML', 'PowerScore', 'Par', 'Ped', 'JTScore', 'WorksScore', 'ClassScore', 'RaceScore', 'Speed', 'BSpeed', 'EP', 'LP', 'Final Score', 'Odds', 'Value'])  
 
 
     st.dataframe(styled_df, hide_index=True)
@@ -402,5 +412,3 @@ if uploaded_file is not None:
         if works_show == 'Yes': 
             st.write(f'{horse_name} Works:')
             st.dataframe(wdf[(wdf['Race'] == race_choice) & (wdf['PP'] == horse)], hide_index = True)
-
-

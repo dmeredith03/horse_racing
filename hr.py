@@ -349,6 +349,7 @@ if uploaded_file is not None:
     def get_data(dataframe):
         return dataframe
     def highlight_cells_condition(row):
+        st.write(row)
         colors = {
             1: "red", 2: "white", 3: "blue", 4: "yellow", 5: "green",
             6: "black", 7: "orange", 8: "pink", 9: "turquoise", 10: "purple",

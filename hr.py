@@ -147,14 +147,13 @@ if uploaded_file is not None:
         praces['FIN'] = praces.apply(lambda row: (row['Starters'] if (isinstance(row['FIN'], str) or (np.isnan(row['FIN Adj']))) else row['FIN Adj']) if isinstance(row['FIN'], str) else row['FIN'], axis=1)
         praces['RaceScore'] = praces.apply(lambda row: 100 + 100 * (0.5 - float(row['FIN'])/row['Starters']) * min(row['Starters'] ** 0.5/5, 1), axis=1)
 
-    ### CHANGE FROM WET ###
-
     def get_hs(race, races, horses, is_wet, off_turf, running_horses):
         horse_scores = pd.DataFrame()
         work_scores = pd.DataFrame()
         race_scores = pd.DataFrame()
 
         race_row = dict(races[races['Race'] == race].reset_index(drop = True))
+        print(race_row)
         if off_turf == True:
             surface = 'D'
         else: 

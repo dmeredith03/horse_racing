@@ -349,7 +349,7 @@ if uploaded_file is not None:
     def get_data(dataframe):
         return dataframe
 
-    def highlight_row_condition(row):
+    def highlight_cells_condition(row):
         if row["PP"] == 1:
             color = "red"
         elif row["PP"] == 2:

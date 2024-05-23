@@ -153,7 +153,7 @@ if uploaded_file is not None:
         race_scores = pd.DataFrame()
 
         race_row = dict(races[races['Race'] == race].reset_index(drop = True))
-        print(race_row)
+        race_row['Surface'] = race_row['Surface'].str.upper()
         if off_turf == True:
             surface = 'D'
         else: 

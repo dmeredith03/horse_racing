@@ -348,62 +348,29 @@ if uploaded_file is not None:
     @st.cache_data
     def get_data(dataframe):
         return dataframe
-
     def highlight_cells_condition(row):
-        if row["PP"] == 1:
-            color = "red"
-        elif row["PP"] == 2:
-            color = "white"
-        elif row["PP"] == 3:
-            color = "blue"
-        elif row["PP"] == 4:
-            color = "yellow"
-        elif row["PP"] == 5:
-            color = "green"
-        elif row["PP"] == 6:
-            color = "black"
-        elif row["PP"] == 7:
-            color = "orange"
-        elif row["PP"] == 8:
-            color = "pink"
-        elif row["PP"] == 9:
-            color = "turquise"
-        elif row["PP"] == 10:
-            color = "purple"
-        elif row["PP"] == 11:
-            color = "grey"
-        elif row["PP"] == 12:
-            color = "lime"
-        elif row["PP"] == 13:
-            color = "brown"
-        elif row["PP"] == 14:
-            color = "maroon"
-        elif row["PP"] == 15:
-            color = "dimgrey"
-        elif row["PP"] == 16:
-            color = "skyblue"
-        elif row["PP"] == 17:
-            color = "navy"
-        elif row["PP"] == 18:
-            color = "forestgreen"
-        elif row["PP"] == 19:
-            color = "cornflowerblue"
-        else:
-            color = 'fuchsia'
+        colors = {
+            1: "red", 2: "white", 3: "blue", 4: "yellow", 5: "green",
+            6: "black", 7: "orange", 8: "pink", 9: "turquoise", 10: "purple",
+            11: "grey", 12: "lime", 13: "brown", 14: "maroon", 15: "dimgrey",
+            16: "skyblue", 17: "navy", 18: "forestgreen", 19: "cornflowerblue"
+        }
+        color = colors.get(row["PP"], 'fuchsia')
         return [f"background-color: {color}" for _ in row]
-
-
-
+    
+    # Load and prepare data
     hdf = get_data(horses)
     rdf = get_data(races)
     pdf = get_data(praces)[['Race', 'PP', 'Days Since', 'Date', 'Track', 'Surface', 'Distance', 'Condition',
-        'Race Type', 'Speed Par', 'Odds', 'FIN', '2fP','4fP','6fP','LP','BSpd','Spd','Comment', 'RaceScore']]
+                           'Race Type', 'Speed Par', 'Odds', 'FIN', '2fP','4fP','6fP','LP','BSpd','Spd','Comment', 'RaceScore']]
     wdf = get_data(works)
-
+    
+    # Format dates
     rdf['Date'] = pd.to_datetime(rdf['Date'], format='%Y%m%d').dt.date
     pdf['Date'] = pd.to_datetime(pdf['Date'], format='%Y%m%d').dt.date
-    wdf['Date'] = pd.to_datetime(works['Date'].astype(int).astype(str), format='%Y%m%d').dt.date
-
+    wdf['Date'] = pd.to_datetime(wdf['Date'].astype(str), format='%Y%m%d').dt.date
+    
+    # Sidebar inputs
     races = rdf['Race'].drop_duplicates()
     show_options = ['Yes', 'No']
     race_choice = st.sidebar.selectbox('Select your race', races)
@@ -411,33 +378,33 @@ if uploaded_file is not None:
     pp_show = st.sidebar.selectbox('Show PPs?', show_options)
     works_show = st.sidebar.selectbox('Show Works?', show_options)
     is_wet = st.sidebar.checkbox("Wet?")
-    if rdf[rdf['Race'] == race_choice]['Surface'].reset_index(drop = True)[0] == 'T':
-        off_turf = st.sidebar.checkbox("Off Turf?")
-    else:
-        off_turf = False
+    off_turf = st.sidebar.checkbox("Off Turf?") if rdf[rdf['Race'] == race_choice]['Surface'].iloc[0] == 'T' else False
     possible_horses = hdf[hdf['Race'] == race_choice]['PP'].unique()
-    running_horses = st.sidebar.multiselect(
-        "What horses are in the race?",
-        possible_horses, default = possible_horses)
-
+    running_horses = st.sidebar.multiselect("What horses are in the race?", possible_horses, default=possible_horses)
+    
+    # Main logic
     horse_scores = get_hs(race_choice, rdf, hdf, is_wet, off_turf, running_horses)
     df = get_fs(horse_scores, race_choice)
-        
-    st.write('Race Overview')
-    st.dataframe(rdf[rdf['Race'] == race_choice], hide_index = True)
     
-    # Get the colormap and its reversed version
+    # Debugging: Print columns of dataframe
+    st.write(df.columns)
+    
+    # Display Race Overview
+    st.write('Race Overview')
+    st.dataframe(rdf[rdf['Race'] == race_choice], hide_index=True)
+    
+    # Dataframe Styling
     cmap = plt.get_cmap('Reds')
     reversed_cmap = plt.get_cmap('Reds_r')
     df = df[df['Race'] == race_choice]
     standard_columns = ['PowerScore', 'Par', 'Ped', 'JTScore', 'WorksScore', 'ClassScore', 'RaceScore', 'Speed', 'BSpeed', 'EP', 'LP', 'Final Score', 'Value']
     reversed_columns = ['ML', 'Odds']
-    styled_df = df.style.background_gradient(cmap=cmap, subset=standard_columns, axis=0)
-    styled_df = styled_df.background_gradient(cmap=reversed_cmap, subset=reversed_columns, axis=0)
-    styled_df = styled_df.format('{:.2f}', subset = ['ML', 'PowerScore', 'Par', 'Ped', 'JTScore', 'WorksScore', 'ClassScore', 'RaceScore', 'Speed', 'BSpeed', 'EP', 'LP', 'Final Score', 'Odds', 'Value'])  
-    styled_df = styled_df.apply(highlight_cells_condition, subset = ['PP'])
-
-
+    styled_df = df.style \
+        .background_gradient(cmap=cmap, subset=standard_columns) \
+        .background_gradient(cmap=reversed_cmap, subset=reversed_columns) \
+        .format('{:.2f}', subset=['ML', 'PowerScore', 'Par', 'Ped', 'JTScore', 'WorksScore', 'ClassScore', 'RaceScore', 'Speed', 'BSpeed', 'EP', 'LP', 'Final Score', 'Odds', 'Value']) \
+        .apply(highlight_cells_condition, subset=['PP'])
+    
     st.dataframe(styled_df, hide_index=True)
 
     

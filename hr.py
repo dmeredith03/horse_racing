@@ -348,8 +348,8 @@ if uploaded_file is not None:
     @st.cache_data
     def get_data(dataframe):
         return dataframe
+        
     def highlight_cells_condition(row):
-        st.write(row)
         colors = {
             1: "red", 2: "white", 3: "blue", 4: "yellow", 5: "green",
             6: "black", 7: "orange", 8: "pink", 9: "turquoise", 10: "purple",
@@ -386,9 +386,6 @@ if uploaded_file is not None:
     # Main logic
     horse_scores = get_hs(race_choice, rdf, hdf, is_wet, off_turf, running_horses)
     df = get_fs(horse_scores, race_choice)
-    
-    # Debugging: Print columns of dataframe
-    st.write(df.columns)
     
     # Display Race Overview
     st.write('Race Overview')

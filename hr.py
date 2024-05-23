@@ -12,8 +12,9 @@ uploaded_file = st.sidebar.file_uploader("Choose a file")
 if uploaded_file is not None:
     pp = pd.read_csv(uploaded_file, header=None)
 
-    races = pp[[0, 1, 2, 5, 6, 24, 8, 9, 22, 12, 11, 213, 214, 215, 217, 216]]
-    races.columns = ['Track', 'Date', 'Race', 'Distance', 'Surface', 'AW', 'Type', 'Restrictions', 'Breed Type', 'Claiming', 'Purse', '2fP', '4fP', '6fP', 'LP', 'SpeedPar']
+    races = pp[[0, 1, 2, 5, 6, 8, 9, 22, 12, 11, 213, 214, 215, 217, 216]]
+    races.columns = ['Track', 'Date', 'Race', 'Distance', 'Surface', 'Type', 'Restrictions', 'Breed Type', 'Claiming', 'Purse', '2fP', '4fP', '6fP', 'LP', 'SpeedPar']
+    races['Surface'] = races['Surface'].str.upper()
     races = races.drop_duplicates().reset_index(drop = True)
 
     horses = pp[[2, 3, 44, 43, 209, 210, 250, 1177, 1178, 1179, 1180, 1327, 1328, 1329, 1330, 1263, 1264, 1265, 1266, 45, 48, 61, 50, 61, 63, 223, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 230, 231, 232, 233, 234, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93, 94, 95, 
@@ -144,6 +145,7 @@ if uploaded_file is not None:
             }
 
             praces = pd.concat([praces, pd.DataFrame([new_race])], ignore_index=True)
+        praces['Surface'] = praces['Surface'].str.upper()
         praces['FIN'] = praces.apply(lambda row: (row['Starters'] if (isinstance(row['FIN'], str) or (np.isnan(row['FIN Adj']))) else row['FIN Adj']) if isinstance(row['FIN'], str) else row['FIN'], axis=1)
         praces['RaceScore'] = praces.apply(lambda row: 100 + 100 * (0.5 - float(row['FIN'])/row['Starters']) * min(row['Starters'] ** 0.5/5, 1), axis=1)
 

@@ -297,7 +297,7 @@ if uploaded_file is not None:
                 'PowerScore': round(row1['PrimePower'], 1),
                 'ParScore': round(parscore,1),
                 'Par': round(parscore * parSpd, 1),
-                'PedScore': round(pedscore),
+                'PedScore': round(pedscore, 1),
                 'Ped': round(pedscore, 1),
                 'JTScore': round(jtscore,1),
                 'WorksScore': round(workscore,1),

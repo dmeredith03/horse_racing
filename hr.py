@@ -404,7 +404,7 @@ if uploaded_file is not None:
         .background_gradient(cmap=cmap, subset=standard_columns) \
         .background_gradient(cmap=reversed_cmap, subset=reversed_columns) \
         .format('{:.2f}', subset=['ML', 'PowerScore', 'Par', 'Ped', 'JTScore', 'WorksScore', 'ClassScore', 'RaceScore', 'Speed', 'BSpeed', 'EP', 'LP', 'Final Score', 'Odds', 'Value']) \
-        .apply(highlight_cells_condition, subset=['PP'])
+        .apply(highlight_cells_condition, subset=['PP'], axis = 1)
     
     st.dataframe(styled_df, hide_index=True)
 

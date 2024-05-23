@@ -349,6 +349,49 @@ if uploaded_file is not None:
     def get_data(dataframe):
         return dataframe
 
+    def highlight_row_condition(row):
+        if row["PP"] == 1:
+            color = "red"
+        elif row["PP"] == 2:
+            color = "white"
+        elif row["PP"] == 3:
+            color = "blue"
+        elif row["PP"] == 4:
+            color = "yellow"
+        elif row["PP"] == 5:
+            color = "green"
+        elif row["PP"] == 6:
+            color = "black"
+        elif row["PP"] == 7:
+            color = "orange"
+        elif row["PP"] == 8:
+            color = "pink"
+        elif row["PP"] == 9:
+            color = "turquise"
+        elif row["PP"] == 10:
+            color = "purple"
+        elif row["PP"] == 11:
+            color = "grey"
+        elif row["PP"] == 12:
+            color = "lime"
+        elif row["PP"] == 13:
+            color = "brown"
+        elif row["PP"] == 14:
+            color = "maroon"
+        elif row["PP"] == 15:
+            color = "dimgrey"
+        elif row["PP"] == 16:
+            color = "skyblue"
+        elif row["PP"] == 17:
+            color = "navy"
+        elif row["PP"] == 18:
+            color = "forestgreen"
+        elif row["PP"] == 19:
+            color = "cornflowerblue"
+        else:
+            color = 'fuchsia'
+        return [f"background-color: {color}" for _ in row]
+
 
 
     hdf = get_data(horses)
@@ -392,6 +435,7 @@ if uploaded_file is not None:
     styled_df = df.style.background_gradient(cmap=cmap, subset=standard_columns, axis=0)
     styled_df = styled_df.background_gradient(cmap=reversed_cmap, subset=reversed_columns, axis=0)
     styled_df = styled_df.format('{:.2f}', subset = ['ML', 'PowerScore', 'Par', 'Ped', 'JTScore', 'WorksScore', 'ClassScore', 'RaceScore', 'Speed', 'BSpeed', 'EP', 'LP', 'Final Score', 'Odds', 'Value'])  
+    styled_df = styled_df.apply(highlight_cells_condition, subset = ['PP'])
 
 
     st.dataframe(styled_df, hide_index=True)

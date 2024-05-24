@@ -123,7 +123,6 @@ if uploaded_file is not None:
                 '10fP': row[805 + i],
                 'LP': row[815 + i],
                 'BSpd': row[845 + i],
-                'Spd': row[855 + i],
 
                 # Horse Fractions Info
                 'F1': row[985 + i],
@@ -244,12 +243,6 @@ if uploaded_file is not None:
             races5 = chr[chr['Race No'] <= 5]['RaceScore'].mean()
             racescore = (races1 + races3 + races5)/3
 
-
-            spd1 = chr[chr['Race No'] <= 1]['Spd'].mean()
-            spd3 = chr[chr['Race No'] <= 3]['Spd'].mean()
-            spd5 = chr[chr['Race No'] <= 5]['Spd'].mean()
-            spdscore = (spd1 + spd3 + spd5)/3
-
             bspd1 = chr[chr['Race No'] <= 1]['BSpd'].mean()
             bspd3 = chr[chr['Race No'] <= 3]['BSpd'].mean()
             bspd5 = chr[chr['Race No'] <= 5]['BSpd'].mean()
@@ -304,8 +297,6 @@ if uploaded_file is not None:
                 'WorksScore': round(workscore,1),
                 'ClassScore': round(classscore,1),
                 'RaceScore': round(racescore, 1),
-                'SpeedScore': round(spdscore,1),
-                'Speed': round(spdscore, 1),
                 'BSpeedScore': round(bspdscore,1),
                 'BSpeed': round(bspdscore * parSpd,1),
                 'EPScore': round(ep_figs[~np.isnan(ep_figs)].mean(),1),
@@ -319,10 +310,10 @@ if uploaded_file is not None:
 
     def get_fs(horse_scores, race):
         race_scores = horse_scores[horse_scores['Race'] == race]
-        race_constants = race_scores[['Race', 'Horse', 'PP', 'ML', 'Style', 'PowerScore', 'Par', 'Ped', 'JTScore', 'WorksScore', 'ClassScore', 'RaceScore', 'Speed', 'BSpeed', 'EP', 'LP']]
+        race_constants = race_scores[['Race', 'Horse', 'PP', 'ML', 'Style', 'PowerScore', 'Par', 'Ped', 'JTScore', 'WorksScore', 'ClassScore', 'RaceScore', 'BSpeed', 'EP', 'LP']]
 
         race_scores = race_scores[['PowerScore', 'ParScore', 'ParScore','ParScore','PedScore', 'JTScore', 'WorksScore', 'ClassScore', 
-        'RaceScore', 'RaceScore', 'RaceScore', 'SpeedScore', 'BSpeedScore', 'BSpeedScore', 'BSpeedScore', 'EPScore', 'EPScore', 'LPScore', 'LPScore']]
+        'RaceScore', 'RaceScore', 'RaceScore', 'BSpeedScore', 'BSpeedScore', 'BSpeedScore', 'EPScore', 'EPScore', 'LPScore', 'LPScore']]
         
         # Calculate column averages
         column_means = race_scores.mean()
@@ -339,9 +330,9 @@ if uploaded_file is not None:
         race_scores['Odds'] = race_scores['Odds'].clip(upper = 75, axis=0)
 
 
-        race_scores[['Race', 'Horse', 'PP', 'ML', 'Style', 'PowerScore', 'Par', 'Ped', 'JTScore', 'WorksScore', 'ClassScore', 'RaceScore', 'Speed', 'BSpeed', 'EP', 'LP']] = race_constants
+        race_scores[['Race', 'Horse', 'PP', 'ML', 'Style', 'PowerScore', 'Par', 'Ped', 'JTScore', 'WorksScore', 'ClassScore', 'RaceScore','BSpeed', 'EP', 'LP']] = race_constants
         race_scores['Value'] = ((race_scores['ML']) * (1/(race_scores['Odds'] + 1))) - (1 - (1/(race_scores['Odds'] +1)))
-        final_scores = race_scores[['Race', 'Horse', 'PP', 'ML', 'Style', 'PowerScore', 'Par', 'Ped', 'JTScore', 'WorksScore', 'ClassScore', 'RaceScore', 'Speed', 'BSpeed', 'EP', 'LP', 'Final Score', 'Odds', 'Value']].sort_values(by = 'Value', ascending = False)
+        final_scores = race_scores[['Race', 'Horse', 'PP', 'ML', 'Style', 'PowerScore', 'Par', 'Ped', 'JTScore', 'WorksScore', 'ClassScore', 'RaceScore', 'BSpeed', 'EP', 'LP', 'Final Score', 'Odds', 'Value']].sort_values(by = 'Value', ascending = False)
 
         return final_scores
 
@@ -373,7 +364,7 @@ if uploaded_file is not None:
     hdf = get_data(horses)
     rdf = get_data(races)
     pdf = get_data(praces)[['Race', 'PP', 'Days Since', 'Date', 'Track', 'Surface', 'Distance', 'Condition',
-                           'Race Type', 'Speed Par', 'Odds', 'FIN', '2fP','4fP','6fP','LP','BSpd','Spd','Comment', 'RaceScore']]
+                           'Race Type', 'Speed Par', 'Odds', 'FIN', '2fP','4fP','6fP','LP','BSpd','Comment', 'RaceScore']]
     wdf = get_data(works)
     
     # Format dates
@@ -405,12 +396,12 @@ if uploaded_file is not None:
     cmap = plt.get_cmap('Reds')
     reversed_cmap = plt.get_cmap('Reds_r')
     df = df[df['Race'] == race_choice]
-    standard_columns = ['PowerScore', 'Par', 'Ped', 'JTScore', 'WorksScore', 'ClassScore', 'RaceScore', 'Speed', 'BSpeed', 'EP', 'LP', 'Final Score', 'Value']
+    standard_columns = ['PowerScore', 'Par', 'Ped', 'JTScore', 'WorksScore', 'ClassScore', 'RaceScore', 'BSpeed', 'EP', 'LP', 'Final Score', 'Value']
     reversed_columns = ['ML', 'Odds']
     styled_df = df.style \
         .background_gradient(cmap=cmap, subset=standard_columns) \
         .background_gradient(cmap=reversed_cmap, subset=reversed_columns) \
-        .format('{:.2f}', subset=['ML', 'PowerScore', 'Par', 'Ped', 'JTScore', 'WorksScore', 'ClassScore', 'RaceScore', 'Speed', 'BSpeed', 'EP', 'LP', 'Final Score', 'Odds', 'Value']) \
+        .format('{:.2f}', subset=['ML', 'PowerScore', 'Par', 'Ped', 'JTScore', 'WorksScore', 'ClassScore', 'RaceScore', 'BSpeed', 'EP', 'LP', 'Final Score', 'Odds', 'Value']) \
         .apply(highlight_cells_condition, subset=['PP'], axis = 1)
     
     st.dataframe(styled_df, hide_index=True)
@@ -432,3 +423,6 @@ if uploaded_file is not None:
         if works_show == 'Yes': 
             st.write(f'{horse_name} Works:')
             st.dataframe(wdf[(wdf['Race'] == race_choice) & (wdf['PP'] == horse)], hide_index = True)
+
+
+

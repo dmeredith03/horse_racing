@@ -350,14 +350,23 @@ if uploaded_file is not None:
         return dataframe
         
     def highlight_cells_condition(row):
-        colors = {
+        background_colors = {
             1: "red", 2: "white", 3: "blue", 4: "yellow", 5: "green",
             6: "black", 7: "orange", 8: "pink", 9: "turquoise", 10: "purple",
             11: "grey", 12: "lime", 13: "brown", 14: "maroon", 15: "dimgrey",
             16: "skyblue", 17: "navy", 18: "forestgreen", 19: "cornflowerblue"
         }
-        color = colors.get(row["PP"], 'fuchsia')
-        return [f"background-color: {color}" for _ in row]
+
+        text_colors = {
+            1: "white", 2: "black", 3: "white", 4: "black", 5: "white",
+            6: "yellow", 7: "black", 8: "black", 9: "black", 10: "white",
+            11: "red", 12: "white", 13: "white", 14: "yellow", 15: "black",
+            16: "red", 17: "white", 18: "yellow", 19: "red"
+        }
+        
+        background_color = background_colors.get(row["PP"], 'fuchsia')
+        text_color = text_colors.get(row["PP"], 'yellow')
+        return [f"background-color: {background_color}, color: {text_color}" for _ in row]
     
     # Load and prepare data
     hdf = get_data(horses)

@@ -366,7 +366,8 @@ if uploaded_file is not None:
         
         background_color = background_colors.get(row["PP"], 'fuchsia')
         text_color = text_colors.get(row["PP"], 'yellow')
-        return [f"background-color: {background_color}, color: {text_color}" for _ in row]
+        return [f"background-color: {background_color}; color: {text_color}" for _ in row]
+
     
     # Load and prepare data
     hdf = get_data(horses)

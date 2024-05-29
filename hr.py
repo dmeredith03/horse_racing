@@ -370,7 +370,7 @@ if uploaded_file is not None:
     # Format dates
     rdf['Date'] = pd.to_datetime(rdf['Date'], format='%Y%m%d').dt.date
     pdf['Date'] = pd.to_datetime(pdf['Date'], format='%Y%m%d').dt.date
-    wdf['Date'] = pd.to_datetime(wdf['Date'].astype(str), format='%Y%m%d').dt.date
+    #wdf['Date'] = pd.to_datetime(wdf['Date'].astype(str), format='%Y%m%d').dt.date
     
     # Sidebar inputs
     races = rdf['Race'].drop_duplicates()

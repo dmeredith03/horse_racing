@@ -18,6 +18,7 @@ if uploaded_file is not None:
     races = pp[[0, 1, 2, 5, 6, 8, 9, 22, 12, 11, 213, 214, 215, 217, 216]]
     races.columns = ['Track', 'Date', 'Race', 'Distance', 'Surface', 'Type', 'Restrictions', 'Breed Type', 'Claiming', 'Purse', '2fP', '4fP', '6fP', 'LP', 'SpeedPar']
     races['Surface'] = races['Surface'].str.upper()
+    races['Distance'] = races['Distance'].apply(lambda x: f'{round(x/220,2)} f' if x < 1760 else f'{round(x/1760,2)} M')
     races = races.drop_duplicates().reset_index(drop = True)
 
     horses = pp[[2, 3, 44, 43, 209, 210, 250, 1177, 1178, 1179, 1180, 1327, 1328, 1329, 1330, 1263, 1264, 1265, 1266, 45, 48, 61, 50, 61, 63, 223, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 230, 231, 232, 233, 234, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93, 94, 95, 
@@ -87,6 +88,8 @@ if uploaded_file is not None:
             works = pd.concat([works, pd.DataFrame([new_work])], ignore_index=True)
     works['WorkScore'] = works.apply(lambda row: 100 + 100 * (0.5 - row['Rank']/row['Horses']) * min(row['Horses'] ** 0.5/15, 1), axis=1)
     works['Date'] = pd.to_datetime(works['Date'].astype(str).str[:8], format='%Y%m%d').dt.date
+    works['Distance'] = works['Distance'].apply(lambda x: f'{round(x/220,2)} f' if x < 1760 else f'{round(x/1760,2)} M')
+
 
     praces = pd.DataFrame()
     for index, row in pp.iterrows():
@@ -127,17 +130,16 @@ if uploaded_file is not None:
                 'Fav': row[1125 + i], 
 
                 # Horse Finish Info
-                'ST': row[565 + i],
-                'STBy': row[635 + i],
-                '1C': row[575 + i],
-                '1CBy': row[655 + i],
-                '2C': row[585 + i],
-                '2CBy': row[675 + i],
-                'STR': row[605 + i],
-                'STRBy': row[715 + i],
-                'FIN': row[615 + i],
-                'FINBy': row[735 + i],
-                'FIN Adj': row[635 + i],
+                'ST': float(re.sub('[^0-9.]', '0', str(row[565 + i]))),
+                'STBy': float(re.sub('[^0-9.]', '0', str(row[635 + i]))),
+                '1C': float(re.sub('[^0-9.]', '0', str(row[575 + i]))),
+                '1CBy': float(re.sub('[^0-9.]', '0', str(row[655 + i]))),
+                '2C': float(re.sub('[^0-9.]', '0', str(row[585 + i]))),
+                '2CBy': float(re.sub('[^0-9.]', '0', str(row[675 + i]))),
+                'STR': float(re.sub('[^0-9.]', '0', str(row[605 + i]))),
+                'STRBy': float(re.sub('[^0-9.]', '0', str(row[715 + i]))),
+                'FIN': float(re.sub('[^0-9.]', '0', str(row[615 + i]))),
+                'FINBy': float(re.sub('[^0-9.]', '0', str(row[735 + i]))),
 
                 # Race Shape Info
                 '1cP': row[695 + i],
@@ -172,12 +174,14 @@ if uploaded_file is not None:
             }
 
             praces = pd.concat([praces, pd.DataFrame([new_race])], ignore_index=True)
-        praces['Surface'] = praces['Surface'].str.upper()
-        praces['FIN'] = praces.apply(lambda row: (row['Starters'] if (isinstance(row['FIN'], str) or (np.isnan(row['FIN Adj']))) else row['FIN Adj']) if isinstance(row['FIN'], str) else row['FIN'], axis=1)
-        praces['RaceScore'] = praces.apply(lambda row: 100 + 100 * (0.5 - float(row['FIN'])/row['Starters']) * min(row['Starters'] ** 0.5/5, 1), axis=1)
-        praces['Date'] = praces['Date'].apply(
+            praces['Surface'] = praces['Surface'].str.upper()
+            praces['FIN'] = praces.apply(lambda row: (row['Starters'] if (isinstance(row['FIN'], str) or (np.isnan(row['FIN Adj']))) else row['FIN Adj']) if isinstance(row['FIN'], str) else row['FIN'], axis=1)
+            praces['RaceScore'] = praces.apply(lambda row: 100 + 100 * (0.5 - float(row['FIN'])/row['Starters']) * min(row['Starters'] ** 0.5/5, 1), axis=1)
+            praces['Date'] = praces['Date'].apply(
                 lambda x: pd.to_datetime(str(int(x)) if isinstance(x, (float,int)) else x, 
                 format='%Y%m%d', errors='coerce')).dt.date
+            #praces['Distance'] = praces['Distance'].apply(lambda x: f'{round(x/220,2)} f' if x < 1760 else f'{round(x/1760,2)} M')
+
 
 
     def get_hs(race, races, horses, is_wet, off_turf, running_horses):
@@ -359,7 +363,7 @@ if uploaded_file is not None:
 
         race_scores[['Race', 'Horse', 'PP', 'ML', 'Style', 'PowerScore', 'Par', 'Ped', 'TScore', 'JScore', 'WorksScore', 'ClassScore', 'RaceScore','BSpeed', 'EP', 'LP']] = race_constants
         race_scores['Value'] = ((race_scores['ML']) * (1/(race_scores['Odds'] + 1))) - (1 - (1/(race_scores['Odds'] +1)))
-        final_scores = race_scores[['Race', 'Horse', 'PP', 'ML', 'Style', 'PowerScore', 'Par', 'Ped', 'TScore', 'JScore', 'WorksScore', 'ClassScore', 'RaceScore', 'BSpeed', 'EP', 'LP', 'Final Score', 'Odds', 'Value']].sort_values(by = 'Value', ascending = False)
+        final_scores = race_scores[['Race', 'Horse', 'PP', 'ML', 'Style', 'Par', 'Ped', 'TScore', 'JScore', 'WorksScore', 'ClassScore', 'RaceScore', 'BSpeed', 'EP', 'LP', 'Final Score', 'Odds', 'Value']].sort_values(by = 'Value', ascending = False)
 
         return final_scores
 
@@ -390,15 +394,20 @@ if uploaded_file is not None:
     # Load and prepare data
     hdf = get_data(horses)
     rdf = get_data(races)
-    pdf = get_data(praces)[['Race', 'PP', 'Days Since', 'Date', 'Track', 'Surface', 'Distance', 'Condition',
-                           'Race Type', 'Speed Par', 'Odds', 'FIN', '2fP','4fP','6fP','LP','BSpd','Comment', 'RaceScore']]
+    pdf = get_data(praces)[['Race', 'PP', 'Date', 'Track', 'Condition', 'Distance', 'Surface', 
+                           '1cP', '2cP', 'Race Type', 'Speed Par',  'BSpd',  'Starters', 
+                            '1C', '2C', 'STR', 'FIN', 'FINBy',
+                           '2fP','4fP','6fP','LP','Comment', 'RaceScore',  'Jockey', 'Odds']]
+    pdf['Distance'] = pdf['Distance'].apply(lambda x: f'{round(x/220,2)} f' if x < 1760 else f'{round(x/1760,2)} M')
+
+
     wdf = get_data(works)
     tjdf = get_data(jt_info)
     
     # Format dates
     rdf['Date'] = pd.to_datetime(rdf['Date'], format='%Y%m%d').dt.date
-    pdf['Date'] = pd.to_datetime(pdf['Date'], format='%Y%m%d').dt.date
-    #wdf['Date'] = pd.to_datetime(wdf['Date'].astype(str), format='%Y%m%d').dt.date
+    #pdf['Date'] = pd.to_datetime(pdf['Date'], format='%Y%m%d').dt.date
+    #wdf['Date'] = pd.to_datetime(wdf['Date'].astype(str).str[:8], format='%Y%m%d').dt.date
     
     # Sidebar inputs
     races = rdf['Race'].drop_duplicates()
@@ -426,13 +435,15 @@ if uploaded_file is not None:
     cmap = plt.get_cmap('Reds')
     reversed_cmap = plt.get_cmap('Reds_r')
     df = df[df['Race'] == race_choice]
-    standard_columns = ['PowerScore', 'Par', 'Ped', 'TScore', 'JScore', 'WorksScore', 'ClassScore', 'RaceScore', 'BSpeed', 'EP', 'LP', 'Final Score', 'Value']
+    df.columns = ['Race', 'Horse', 'PP', 'ML', 'Style', 'Par', 'Pedigree', 'Trainer', 'Jockey', 'Works', 'Class', 'Results', 'Speed', 'EP', 'LP', 'Final Score', 'Odds', 'Value']
+    standard_columns = ['Par', 'Pedigree', 'Trainer', 'Jockey', 'Works', 'Class', 'Results', 'Speed', 'EP', 'LP', 'Final Score', 'Value']
     reversed_columns = ['ML', 'Odds']
     styled_df = df.style \
         .background_gradient(cmap=cmap, subset=standard_columns) \
         .background_gradient(cmap=reversed_cmap, subset=reversed_columns) \
-        .format('{:.2f}', subset=['ML', 'PowerScore', 'Par', 'Ped', 'TScore', 'JScore', 'WorksScore', 'ClassScore', 'RaceScore', 'BSpeed', 'EP', 'LP', 'Final Score', 'Odds', 'Value']) \
+        .format('{:.2f}', subset=['ML',  'Par', 'Pedigree', 'Trainer', 'Jockey', 'Works', 'Class', 'Results', 'Speed', 'EP', 'LP', 'Final Score', 'Odds', 'Value']) \
         .apply(highlight_cells_condition, subset=['PP'], axis = 1)
+    
     
     st.dataframe(styled_df, hide_index=True)
 
@@ -440,7 +451,52 @@ if uploaded_file is not None:
 
     horse_options = hdf[hdf['Race'] == race_choice]['PP'].unique()
 
+    def color_negative_red(series):
+        # make a darker color for lower negative values and lighter color for lower positive values
+        color = series.apply(lambda val: 'rgba(0,0,0,0)' if np.isnan(val) else f'rgba(0, 0, 255, {abs(val/50)})' if val < 0 else f'rgba(255, 0, 0, {abs(val/50)})')
+        return [f"background-color: {color_val}" for color_val in color]
 
+    def color_finish(series):
+        # make a darker color for lower negative values and lighter color for lower positive values
+        color = series.apply(lambda val: 'yellow' if val == 1 else 'silver' if val == 2 else 'peru' if val == 3 else 'white')
+        return [f"background-color: {color_val}" for color_val in color]
+    
+    def color_bspd(series):
+        speedpar = rdf[rdf['Race'] == race_choice]['SpeedPar'].iloc[0]
+
+        color = series.apply(lambda val: 'rgba(0,0,0,0)' if np.isnan(val) else f"rgba(255, 0, 0, {(20 - (speedpar - val))/50})" 
+                        if val < speedpar else f"rgba(255, 0, 0, 0.8)")
+        return [f"background-color: {color_val}" for color_val in color]
+
+    def color_2fP(series):
+        speedpar = rdf[rdf['Race'] == race_choice]['2fP'].iloc[0]
+        # check if speedpar is null
+        color = series.apply(lambda val: f"rgba(0,0,0,0)" if (np.isnan(speedpar) or np.isnan(val)) else f"rgba(255, 0, 0, {(20 - (speedpar - val))/50})" 
+                        if val < speedpar else f"rgba(255, 0, 0, 0.8)")
+        return [f"background-color: {color_val}" for color_val in color]
+
+    def color_4fP(series):
+        speedpar = rdf[rdf['Race'] == race_choice]['4fP'].iloc[0]
+        # check if speedpar is null
+        color = series.apply(lambda val: f"rgba(0,0,0,0)" if (np.isnan(speedpar) or np.isnan(val)) else f"rgba(255, 0, 0, {(20 - (speedpar - val))/50})" 
+                        if val < speedpar else f"rgba(255, 0, 0, 0.8)")
+        return [f"background-color: {color_val}" for color_val in color]
+
+    def color_6fP(series):
+        speedpar = rdf[rdf['Race'] == race_choice]['6fP'].iloc[0]
+        # check if speedpar is null
+        color = series.apply(lambda val: f"rgba(0,0,0,0)" if (np.isnan(speedpar) or np.isnan(val)) else f"rgba(255, 0, 0, {(20 - (speedpar - val))/50})" 
+                        if val < speedpar else f"rgba(255, 0, 0, 0.8)")
+        return [f"background-color: {color_val}" for color_val in color]
+
+    def color_LP(series):
+        speedpar = rdf[rdf['Race'] == race_choice]['LP'].iloc[0]
+        # check if speedpar is null
+        color = series.apply(lambda val: f"rgba(0,0,0,0)" if (np.isnan(speedpar) or np.isnan(val)) else f"rgba(255, 0, 0, {(20 - (speedpar - val))/50})" 
+                        if val < speedpar else f"rgba(255, 0, 0, 0.8)")
+        return [f"background-color: {color_val}" for color_val in color]
+
+    
     for horse in horse_options:
         horse_data = hdf[(hdf['Race'] == race_choice) & (hdf['PP'] == horse)].reset_index(drop=True)
         horse_name = horse_data['Name'][0].title()
@@ -449,7 +505,24 @@ if uploaded_file is not None:
             st.dataframe(df[(df['Race'] == race_choice) & (df['PP'] == horse)], hide_index = True)
         if pp_show == 'Yes':
             st.write(f'{horse_name} PPs:')
-            st.dataframe(pdf[(pdf['Race'] == race_choice) & (pdf['PP'] == horse)], hide_index = True)
+            pdfh = pdf[(pdf['Race'] == race_choice) & (pdf['PP'] == horse)]
+            pdfh = pdfh[['Date', 'Track', 'Condition', 'Distance', 'Surface', 
+                           '1cP', '2cP', 'Race Type', 'Speed Par',  'BSpd', 'Odds',  'Starters', 
+                            '1C', '2C', 'STR', 'FIN', 'FINBy',
+                           '2fP','4fP','6fP','LP','Comment']]
+            pdfh = pdfh.style \
+                .apply(color_negative_red, subset=['1cP', '2cP'], axis = 1) \
+                .apply(color_bspd, subset=['BSpd'], axis = 1) \
+                .apply(color_2fP, subset=['2fP'], axis = 1) \
+                .apply(color_4fP, subset=['4fP'], axis = 1) \
+                .apply(color_6fP, subset=['6fP'], axis = 1) \
+                .apply(color_LP, subset=['LP'], axis = 1) \
+                .apply(color_finish, subset=['FIN'], axis = 1) \
+                .format('{:.1f}', subset=['Odds']) \
+                .format('{:.0f}', subset=['1cP', '2cP', 'BSpd', '1cP', '2cP', 'Speed Par','Starters', 
+                            '1C', '2C', 'STR', 'FIN', 'FINBy','2fP','4fP','6fP','LP'])
+            
+            st.dataframe(pdfh, hide_index = True)
         if works_show == 'Yes': 
             st.write(f'{horse_name} Works:')
             st.dataframe(wdf[(wdf['Race'] == race_choice) & (wdf['PP'] == horse)], hide_index = True)

@@ -180,141 +180,196 @@ if uploaded_file is not None:
             praces['Date'] = praces['Date'].apply(
                 lambda x: pd.to_datetime(str(int(x)) if isinstance(x, (float,int)) else x, 
                 format='%Y%m%d', errors='coerce')).dt.date
-            #praces['Distance'] = praces['Distance'].apply(lambda x: f'{round(x/220,2)} f' if x < 1760 else f'{round(x/1760,2)} M')
 
+    # Initialize a list to store the data
+    race_shape_data = []
 
+    calls = ['2fP', '4fP', '6fP', 'LP']
 
+    # Iterate over each race
+    for race in praces['Race'].unique():
+        race_df = praces[praces['Race'] == race]
+        
+        # Iterate over each horse
+        for horse in race_df['PP'].unique():
+            horse_df = race_df[race_df['PP'] == horse]
+            
+            # Iterate over each call
+            for call in calls:
+                # Calculate the average position and pace at this call
+                avg_pace = horse_df[call].mean()
+                
+                # Append the data to the list
+                race_shape_data.append({'Race': race, 'PP': horse, 'Call': call, 'Avg Pace': avg_pace})
+
+    # Convert the list to a DataFrame
+    race_shape = pd.DataFrame(race_shape_data)
+
+    @st.cache_data
+    def get_call_data(race_shape, races, race, call):
+        # Get the data
+        call_data = race_shape[(race_shape['Race'] == race) & (race_shape['Call'] == call)]
+        
+        # Order call data by average pace
+        call_data = call_data.sort_values('Avg Pace', ascending=True).reset_index(drop=True)
+
+        x = call_data.index + 1 
+        x_labels = call_data['PP']
+        y = call_data['Avg Pace']
+        colors_dict = {
+            1: "red", 2: "white", 3: "blue", 4: "yellow", 5: "green",
+            6: "black", 7: "orange", 8: "pink", 9: "turquoise", 10: "purple",
+            11: "grey", 12: "lime", 13: "brown", 14: "maroon", 15: "dimgrey",
+            16: "skyblue", 17: "navy", 18: "forestgreen", 19: "cornflowerblue"
+        }
+
+        outline_colors_dict = {
+            1: "white", 2: "black", 3: "white", 4: "black", 5: "white",
+            6: "yellow", 7: "black", 8: "black", 9: "black", 10: "white",
+            11: "red", 12: "white", 13: "white", 14: "yellow", 15: "black",
+            16: "red", 17: "white", 18: "yellow", 19: "red"
+        }
+
+        # Get the race speed par
+        race_speed_par = races[(races['Race'] == race)][call].iloc[0]
+
+        # Create a new figure
+        fig, ax = plt.subplots(figsize = (10,4))
+
+        # Create a list of colors for the stems
+        outline_colors = [outline_colors_dict[i] for i in x_labels]
+        colors = [colors_dict[i] for i in x_labels]
+
+        # Create the stem plot with colored stems
+        lines = ax.hlines(x, [0]*len(y), y, colors=outline_colors, linewidth=2) 
+        lines = ax.hlines(x, [0]*len(y), y, colors=colors, linewidth=1.5) 
+
+        # Add the race speed par as a horizontal line
+        ax.axvline(x=race_speed_par, color='r', linestyle='-')
+
+        # Rotate the x-axis labels
+        plt.xticks(rotation='vertical')
+
+        # Add numbers at the end of each stem
+        for i, value in enumerate(y):
+            ax.text(value + 4, x[i], str(x_labels.iloc[i]), ha='right', va='center')
+
+        ax.axis('off')
+        plt.savefig('data.png') 
+
+    @st.cache_data
     def get_hs(race, races, horses, is_wet, off_turf, running_horses):
         horse_scores = pd.DataFrame()
-        work_scores = pd.DataFrame()
-        race_scores = pd.DataFrame()
-
-        race_row = dict(races[races['Race'] == race].reset_index(drop = True))
-        race_row['Surface'] = race_row['Surface'].str.upper()
+        race_row = races.loc[races['Race'] == race].reset_index(drop=True).iloc[0].to_dict()
+        race_row['Surface'] = race_row['Surface'].upper()
         if off_turf == True:
             surface = 'D'
         else: 
-            surface = race_row['Surface'][0]
-
+            surface = race_row['Surface']
         if ((surface == 'D') & (is_wet == True)):
             surf_code = 'W'
         else:
             surf_code = surface
 
-        
-        par2f = race_row['2fP'][0]
-        par4f = race_row['4fP'][0]
-        par6f = race_row['6fP'][0]
-        parLP = race_row['LP'][0]
-        parSpd = race_row['SpeedPar'][0]
+        par2f = race_row['2fP']
+        par4f = race_row['4fP']
+        par6f = race_row['6fP']
+        parLP = race_row['LP']
+        parSpd = race_row['SpeedPar']
         if np.isnan(parSpd):
             parSpd = 60
-        horses_in_race = horses[horses['Race'] == race]
-        horses_in_race = horses_in_race[horses_in_race['PP'].isin(running_horses)]
-        
+        horses_in_race = horses.loc[horses['Race'] == race]
+        horses_in_race = horses_in_race.loc[horses_in_race['PP'].isin(running_horses)]
+
         for index1, row1 in horses_in_race.iterrows():
-            hw = works[(works['Race'] == row1['Race']) & (works['PP'] == row1['PP'])]
-            hjt = jt_info[(jt_info['Race'] == row1['Race']) & (jt_info['PP'] == row1['PP'])]
+            hw = works.loc[(works['Race'] == row1['Race']) & (works['PP'] == row1['PP'])]
+            hjt = jt_info.loc[(jt_info['Race'] == row1['Race']) & (jt_info['PP'] == row1['PP'])]
             if surf_code == 'D':
                 surfpar = row1['FstSpdB']/parSpd
                 surfped = np.nan if len(re.findall('\d+\.\d+|\d+', str(row1['FstPed']))) == 0 else int(re.findall('\d+\.\d+|\d+', str(row1['FstPed']))[0])
-                hw = hw[(hw['SubTrack'] == 'MT') & (hw['Condition'].isin(['ft', 'gd']))].reset_index(drop = True)
+                hw = hw.loc[(hw['SubTrack'] == 'MT') & (hw['Condition'].isin(['ft', 'gd']))].reset_index(drop=True)
             elif surf_code == 'T':
                 surfpar = row1['TrfSpdB']/parSpd
                 surfped = np.nan if len(re.findall('\d+\.\d+|\d+', str(row1['TrfPed']))) == 0 else int(re.findall('\d+\.\d+|\d+', str(row1['TrfPed']))[0])
-                hw = hw[hw['SubTrack'] == 'TT'].reset_index(drop = True)
+                hw = hw.loc[hw['SubTrack'] == 'TT'].reset_index(drop=True)
             elif surf_code == 'W':
                 surfpar = row1['WetSpdB']/parSpd
                 surfped = np.nan if len(re.findall('\d+\.\d+|\d+', str(row1['WetPed']))) == 0 else int(re.findall('\d+\.\d+|\d+', str(row1['WetPed']))[0])
-                hw = hw[(hw['SubTrack'] == 'MT') & (hw['Condition'].isin(['my', 'sy']))].reset_index(drop = True)
+                hw = hw.loc[(hw['SubTrack'] == 'MT') & (hw['Condition'].isin(['my', 'sy']))].reset_index(drop=True)
             else:
                 surfpar = np.nan
                 surfped = np.nan
-            
+
             hw['Work'] = range(1, len(hw['Work'])+1)
-            
+
             distpar = 0 if np.isnan(row1['DistSpdB']/parSpd) else row1['DistSpdB']/parSpd
             distped = np.nan if len(re.findall('\d+\.\d+|\d+', str(row1['DistPed']))) == 0 else int(re.findall('\d+\.\d+|\d+', str(row1['DistPed']))[0])
             ltpar = 0 if np.isnan(row1['LTSpdB']/parSpd) else row1['LTSpdB']/parSpd
             cypar = 0 if np.isnan(row1['CYSpdB']/parSpd) else row1['CYSpdB']/parSpd
             pypar = 0 if np.isnan(row1['PYSpdB']/parSpd) else row1['PYSpdB']/parSpd
             trackpar = 0 if np.isnan(row1['TrkSpdB']/parSpd) else row1['TrkSpdB']/parSpd
-
             try:
                 parscore = (surfpar * 3 + distpar * 3 + cypar * 2 + pypar + trackpar * 2) / (np.sum(3 if surfpar > 0 else 0) + np.sum(3 if distpar > 0 else 0) + np.sum(2 if cypar  > 0 else 0) + np.sum(1 if pypar  > 0 else 0)+ np.sum(2 if trackpar > 0 else 0))
             except:
                 parscore = np.nan
-
             try:
                 pedscore = (surfped + distped) / (np.sum(1 if surfped > 0 else 0) + np.sum(1 if distped > 0 else 0))
             except:
                 pedscore = np.nan
-
             hjt['Score'] = hjt.apply(lambda row: 100 + 100 * ((row['ROI'] + 0.36)/2) * min((row['Starts'] ** 0.5)/20, 1), axis = 1)
-            tscore = hjt[(hjt['T/J'] == row1['Trainer']) | (hjt['T/J'] == 'Combined')]['Score'].mean()
-            jscore = hjt[(hjt['T/J'] == row1['Jockey']) | (hjt['T/J'] == 'Combined')]['Score'].mean()
+            tscore = hjt.loc[(hjt['T/J'] == row1['Trainer']) | (hjt['T/J'] == 'Combined')]['Score'].mean()
+            jscore = hjt.loc[(hjt['T/J'] == row1['Jockey']) | (hjt['T/J'] == 'Combined')]['Score'].mean()
 
-
-            works1 = hw[hw['Work'] <= 3]['WorkScore'].max()
-            works3 = hw[hw['Work'] <= 3]['WorkScore'].mean()
-            works5 = hw[hw['Work'] <= 5]['WorkScore'].mean()
+            works1 = hw.loc[hw['Work'] <= 3]['WorkScore'].max()
+            works3 = hw.loc[hw['Work'] <= 3]['WorkScore'].mean()
+            works5 = hw.loc[hw['Work'] <= 5]['WorkScore'].mean()
             workscore = (works1 + works3 + works5)/3
-
-            hr = praces[(praces['Race'] == row1['Race']) & (praces['PP'] == row1['PP'])]
-            cl1 = hr[hr['Race No'] <= 1]['Speed Par'].max()
-            cl3 = hr[hr['Race No'] <= 3]['Speed Par'].mean()
-            cl5 = hr[hr['Race No'] <= 5]['Speed Par'].mean()
+            hr = praces.loc[(praces['Race'] == row1['Race']) & (praces['PP'] == row1['PP'])]
+            cl1 = hr.loc[hr['Race No'] <= 1]['Speed Par'].max()
+            cl3 = hr.loc[hr['Race No'] <= 3]['Speed Par'].mean()
+            cl5 = hr.loc[hr['Race No'] <= 5]['Speed Par'].mean()
             classscore = (cl1 + cl3 + cl5)/3
-
-            chr = hr[(hr['BSpd'] > 40) & (hr['Date'] >= date.today() - timedelta(days=180))]
-            # get chr races that took place in the last 90 days
+            chr = hr.loc[(hr['BSpd'] > 40) & (hr['Date'] >= date.today() - timedelta(days=180))]
             chr['Race No'] = list(range(len(chr)))
             chr['Race No'] = chr['Race No'] + 1
-
-            races1 = chr[chr['Race No'] <= 1]['RaceScore'].max()
-            races3 = chr[chr['Race No'] <= 3]['RaceScore'].mean()
-            races5 = chr[chr['Race No'] <= 5]['RaceScore'].mean()
+            races1 = chr.loc[chr['Race No'] <= 1]['RaceScore'].max()
+            races3 = chr.loc[chr['Race No'] <= 3]['RaceScore'].mean()
+            races5 = chr.loc[chr['Race No'] <= 5]['RaceScore'].mean()
             racescore = (races1 + races3 + races5)/3
-
-            bspd1 = chr[chr['Race No'] <= 1]['BSpd'].max()
-            bspd3 = chr[chr['Race No'] <= 3]['BSpd'].mean()
-            bspd5 = chr[chr['Race No'] <= 5]['BSpd'].mean()
+            bspd1 = chr.loc[chr['Race No'] <= 1]['BSpd'].max()
+            bspd3 = chr.loc[chr['Race No'] <= 3]['BSpd'].mean()
+            bspd5 = chr.loc[chr['Race No'] <= 5]['BSpd'].mean()
             bspdscore = ((bspd1 + bspd3 + bspd5)/3)/parSpd
-
-            f21 = chr[chr['Race No'] <= 3]['2fP'].max()
-            f23 = chr[chr['Race No'] <= 3]['2fP'].mean()
-            f25 = chr[chr['Race No'] <= 5]['2fP'].mean()
+            f21 = chr.loc[chr['Race No'] <= 3]['2fP'].max()
+            f23 = chr.loc[chr['Race No'] <= 3]['2fP'].mean()
+            f25 = chr.loc[chr['Race No'] <= 5]['2fP'].mean()
             if par2f != np.nan:
                 f2score = ((f21 + f23 + f25)/3)/par2f
             else:
                 f2score = np.nan
-
-            f41 = chr[chr['Race No'] <= 3]['4fP'].max()
-            f43 = chr[chr['Race No'] <= 3]['4fP'].mean()
-            f45 = chr[chr['Race No'] <= 5]['4fP'].mean()
+            f41 = chr.loc[chr['Race No'] <= 3]['4fP'].max()
+            f43 = chr.loc[chr['Race No'] <= 3]['4fP'].mean()
+            f45 = chr.loc[chr['Race No'] <= 5]['4fP'].mean()
             if par4f != np.nan:
                 f4score = ((f41 + f43 + f45)/3)/par4f
             else:
                 f4score = np.nan
-
-            f61 = chr[chr['Race No'] <= 3]['6fP'].max()
-            f63 = chr[chr['Race No'] <= 3]['6fP'].mean()
-            f65 = chr[chr['Race No'] <= 5]['6fP'].mean()
+            f61 = chr.loc[chr['Race No'] <= 3]['6fP'].max()
+            f63 = chr.loc[chr['Race No'] <= 3]['6fP'].mean()
+            f65 = chr.loc[chr['Race No'] <= 5]['6fP'].mean()
             if par6f != np.nan:
                 f6score = ((f61 + f63 + f65)/3)/par6f
             else:
                 f6score = np.nan
-            
-            ep_figs = np.array([f2score,f4score,f6score])
 
-            lp1 = chr[chr['Race No'] <= 3]['LP'].max()
-            lp3 = chr[chr['Race No'] <= 3]['LP'].mean()
-            lp5 = chr[chr['Race No'] <= 5]['LP'].mean()
+            ep_figs = np.array([f2score,f4score,f6score])
+            lp1 = chr.loc[chr['Race No'] <= 3]['LP'].max()
+            lp3 = chr.loc[chr['Race No'] <= 3]['LP'].mean()
+            lp5 = chr.loc[chr['Race No'] <= 5]['LP'].mean()
             if parLP != np.nan:
                 lpscore = ((lp1 + lp3 + lp5)/3)/parLP
             else:
                 lpscore = np.nan
-
             new_horse_score = {
                 'Race': race,
                 'Horse': row1['Name'],
@@ -342,6 +397,7 @@ if uploaded_file is not None:
             horse_scores = pd.concat([horse_scores, pd.DataFrame([new_horse_score])], ignore_index=True)
         return horse_scores
 
+    @st.cache_data
     def get_fs(horse_scores, race):
         race_scores = horse_scores[horse_scores['Race'] == race]
         race_constants = race_scores[['Race', 'Horse', 'PP', 'ML', 'Style', 'PowerScore', 'Par', 'Ped', 'TScore', 'JScore', 'WorksScore', 'ClassScore', 'RaceScore', 'BSpeed', 'EP', 'LP']]
@@ -392,18 +448,9 @@ if uploaded_file is not None:
 
     
     # Load and prepare data
-    hdf = get_data(horses)
+
     rdf = get_data(races)
-    pdf = get_data(praces)[['Race', 'PP', 'Date', 'Track', 'Condition', 'Distance', 'Surface', 
-                           '1cP', '2cP', 'Race Type', 'Speed Par',  'BSpd',  'Starters', 
-                            '1C', '2C', 'STR', 'FIN', 'FINBy',
-                           '2fP','4fP','6fP','LP','Comment', 'RaceScore',  'Jockey', 'Odds']]
-    pdf['Distance'] = pdf['Distance'].apply(lambda x: f'{round(x/220,2)} f' if x < 1760 else f'{round(x/1760,2)} M')
 
-
-    wdf = get_data(works)
-    tjdf = get_data(jt_info)
-    
     # Format dates
     rdf['Date'] = pd.to_datetime(rdf['Date'], format='%Y%m%d').dt.date
     #pdf['Date'] = pd.to_datetime(pdf['Date'], format='%Y%m%d').dt.date
@@ -420,8 +467,25 @@ if uploaded_file is not None:
     tj_show = st.sidebar.selectbox('Show T/J Stats?', show_options)
     is_wet = st.sidebar.checkbox("Wet?")
     off_turf = st.sidebar.checkbox("Off Turf?") if rdf[rdf['Race'] == race_choice]['Surface'].iloc[0] == 'T' else False
+
+    hdf = get_data(horses)
     possible_horses = hdf[hdf['Race'] == race_choice]['PP'].unique()
     running_horses = st.sidebar.multiselect("What horses are in the race?", possible_horses, default=possible_horses)
+    hdf = hdf[hdf['PP'].isin(running_horses)]
+    pdf = get_data(praces)[['Race', 'PP', 'Date', 'Track', 'Condition', 'Distance', 'Surface', 
+                           '1cP', '2cP', 'Race Type', 'Speed Par',  'BSpd',  'Starters', 
+                            '1C', '2C', 'STR', 'FIN', 'FINBy',
+                           '2fP','4fP','6fP','LP','Comment', 'RaceScore',  'Jockey', 'Odds']]
+    pdf = pdf[pdf['PP'].isin(running_horses)]
+    pdf['Distance'] = pdf['Distance'].apply(lambda x: f'{round(x/220,2)} f' if x < 1760 else f'{round(x/1760,2)} M')
+    rsdf = get_data(race_shape)
+    rsdf = rsdf[rsdf['PP'].isin(running_horses)]
+    wdf = get_data(works)
+    wdf = wdf[wdf['PP'].isin(running_horses)]
+    tjdf = get_data(jt_info)
+    tjdf = tjdf[tjdf['PP'].isin(running_horses)]
+    
+
     
     # Main logic
     horse_scores = get_hs(race_choice, rdf, hdf, is_wet, off_turf, running_horses)
@@ -447,6 +511,10 @@ if uploaded_file is not None:
     
     st.dataframe(styled_df, hide_index=True)
 
+    st.write('Race Shape')
+    call = st.selectbox('Race Shape at Call', ['2fP', '4fP', '6fP', 'LP'])
+    get_call_data(rsdf, rdf, race_choice, call)
+    st.image('data.png')
     
 
     horse_options = hdf[hdf['Race'] == race_choice]['PP'].unique()
@@ -529,6 +597,5 @@ if uploaded_file is not None:
         if tj_show == 'Yes': 
             st.write(f'{horse_name} T/J Stats:')
             st.dataframe(tjdf[(tjdf['Race'] == race_choice) & (tjdf['PP'] == horse)], hide_index = True)
-
 
 

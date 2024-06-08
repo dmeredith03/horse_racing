@@ -9,19 +9,20 @@ import numpy as np
 import re
 import math
 from datetime import date, timedelta
+import streamlit as st
 
 st.set_page_config(page_title='Race Info', page_icon=None, layout="wide", initial_sidebar_state="auto", menu_items=None)
 uploaded_file = st.sidebar.file_uploader("Choose a file")
 if uploaded_file is not None:
     pp = pd.read_csv(uploaded_file, header=None)
 
-    races = pp[[0, 1, 2, 5, 6, 8, 9, 22, 12, 11, 213, 214, 215, 217, 216]]
+    races = pp.loc[:, [0, 1, 2, 5, 6, 8, 9, 22, 12, 11, 213, 214, 215, 217, 216]]
     races.columns = ['Track', 'Date', 'Race', 'Distance', 'Surface', 'Type', 'Restrictions', 'Breed Type', 'Claiming', 'Purse', '2fP', '4fP', '6fP', 'LP', 'SpeedPar']
     races['Surface'] = races['Surface'].str.upper()
     races['Distance'] = races['Distance'].apply(lambda x: f'{round(x/220,2)} f' if x < 1760 else f'{round(x/1760,2)} M')
-    races = races.drop_duplicates().reset_index(drop = True)
+    races = races.drop_duplicates().reset_index(drop=True)
 
-    horses = pp[[2, 3, 44, 43, 209, 210, 250, 1177, 1178, 1179, 1180, 1327, 1328, 1329, 1330, 1263, 1264, 1265, 1266, 45, 48, 61, 50, 61, 63, 223, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 230, 231, 232, 233, 234, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93, 94, 95, 
+    horses = pp.loc[:, [2, 3, 44, 43, 209, 210, 250, 1177, 1178, 1179, 1180, 1327, 1328, 1329, 1330, 1263, 1264, 1265, 1266, 45, 48, 61, 50, 61, 63, 223, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 230, 231, 232, 233, 234, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93, 94, 95, 
                 96, 97, 98, 99, 100, 27, 28, 29, 30, 31, 1146, 1147, 1148, 1149, 1150, 1151, 1152, 1153, 1154, 1155, 32, 34, 35, 36, 37, 1156, 1157, 1158, 1159, 1160 ,1161, 1162, 1163, 1164, 1165, 1367, 1368, 1369, 1370, 1371, 218, 219, 220, 221, 222, 1412, 1413, 1414, 1415, 1416, 
                 1336, 1337, 1338, 1339, 1340, 1341, 1342, 1343, 1344, 1345, 1346, 1347, 1348, 1349, 1350, 1351,1352, 1353, 1354, 1355, 1356, 1357, 1358, 1359, 1360, 1361, 1362, 1363, 1364, 1365, 1366, 1367, 1368, 1370, 1371]]
 
@@ -45,13 +46,13 @@ if uploaded_file is not None:
                     'KJS1', 'KJ1R', 'KJ1W', 'KJ1S', 'KJ1Roi']
     horses['Trainer'] = horses['Trainer'].str.title()
     horses['Jockey'] = horses['Jockey'].str.title()
-    
+
     jt_info = pd.DataFrame(columns=['Race', 'PP', 'T/J', 'Category', 'Starts', 'Wins', 'Win %', 'ROI'])
     for index, row in horses.iterrows():
         jt_info = pd.concat([jt_info, pd.DataFrame([{'Race': row['Race'], 'PP': row['PP'], 'T/J': row['Trainer'], 'Category': 'Current Year', 'Starts': row['TCYR'], 'Wins': row['TCYW'], 'Win %': row['TCYW']/row['TCYR'] if row['TCYR'] > 0 else 0, 'ROI': row['TCYRoi']}])], ignore_index=True)
         jt_info = pd.concat([jt_info, pd.DataFrame([{'Race': row['Race'], 'PP': row['PP'], 'T/J': row['Trainer'], 'Category': 'Previous Year', 'Starts': row['TPYR'], 'Wins': row['TPYW'], 'Win %': row['TPYP']/row['TPYR'] if row['TPYR'] > 0 else 0, 'ROI': row['TPYRoi']}])], ignore_index=True)
         for i in range(1, 7):
-            jt_info = pd.concat([jt_info, pd.DataFrame([{'Race': row['Race'], 'PP': row['PP'], 'T/J': row['Trainer'], 'Category': row['KTS' + str(i)], 'Starts': row['KT' + str(i) + 'R'], 'Wins': row['KT' + str(i) + 'W']/100 * row['KT' + str(i) + 'R'], 'Win %': row['KT' + str(i) + 'W']/100, 'ROI': row['KT' + str(i) + 'Roi']}])], ignore_index=True)
+            jt_info = pd.concat([jt_info, pd.DataFrame([{'Race': row['Race'], 'PP': row['PP'], 'T/J': row['Trainer'], 'Category': row[f'KTS{i}'], 'Starts': row[f'KT{i}R'], 'Wins': row[f'KT{i}W']/100 * row[f'KT{i}R'], 'Win %': row[f'KT{i}W']/100, 'ROI': row[f'KT{i}Roi']}])], ignore_index=True)
 
         jt_info = pd.concat([jt_info, pd.DataFrame([{'Race': row['Race'], 'PP': row['PP'], 'T/J': row['Jockey'], 'Category': 'Current Year', 'Starts': row['JCYR'], 'Wins': row['JCYW'], 'Win %': row['JCYW']/row['JCYR'] if row['JCYR'] > 0 else 0, 'ROI': row['JCYRoi']}])], ignore_index=True)
         jt_info = pd.concat([jt_info, pd.DataFrame([{'Race': row['Race'], 'PP': row['PP'], 'T/J': row['Jockey'], 'Category': 'Previous Year', 'Starts': row['JPYR'], 'Wins': row['JPYW'], 'Win %': row['JCYW']/row['JPYR'] if row['JPYR'] > 0 else 0, 'ROI': row['JPYRoi']}])], ignore_index=True)
@@ -60,7 +61,7 @@ if uploaded_file is not None:
         
         jt_info = pd.concat([jt_info, pd.DataFrame([{'Race': row['Race'], 'PP': row['PP'], 'T/J': 'Combined', 'Category': 'Meet', 'Starts': row['JwTMR'], 'Wins': row['JwTMW'], 'Win %': row['JwTMW']/row['JwTMR'] if row['JwTMR'] > 0 else 0, 'ROI': row['JwTMRoi']}])], ignore_index=True)
         
-        jt_info = jt_info.dropna().reset_index(drop = True)
+        jt_info = jt_info.dropna().reset_index(drop=True)
         jt_info['T/J'] = jt_info['T/J'].str.title()
         jt_info['Wins'] = jt_info['Wins'].apply(lambda x: round(x))
         jt_info['Win %'] = jt_info['Win %'].apply(lambda x: round(x, 2))
@@ -89,7 +90,6 @@ if uploaded_file is not None:
     works['WorkScore'] = works.apply(lambda row: 100 + 100 * (0.5 - row['Rank']/row['Horses']) * min(row['Horses'] ** 0.5/15, 1), axis=1)
     works['Date'] = pd.to_datetime(works['Date'].astype(str).str[:8], format='%Y%m%d').dt.date
     works['Distance'] = works['Distance'].apply(lambda x: f'{round(x/220,2)} f' if x < 1760 else f'{round(x/1760,2)} M')
-
 
     praces = pd.DataFrame()
     for index, row in pp.iterrows():
@@ -174,12 +174,11 @@ if uploaded_file is not None:
             }
 
             praces = pd.concat([praces, pd.DataFrame([new_race])], ignore_index=True)
-            praces['Surface'] = praces['Surface'].str.upper()
-            praces['FIN'] = praces.apply(lambda row: (row['Starters'] if (isinstance(row['FIN'], str) or (np.isnan(row['FIN Adj']))) else row['FIN Adj']) if isinstance(row['FIN'], str) else row['FIN'], axis=1)
-            praces['RaceScore'] = praces.apply(lambda row: 100 + 100 * (0.5 - float(row['FIN'])/row['Starters']) * min(row['Starters'] ** 0.5/5, 1), axis=1)
-            praces['Date'] = praces['Date'].apply(
-                lambda x: pd.to_datetime(str(int(x)) if isinstance(x, (float,int)) else x, 
-                format='%Y%m%d', errors='coerce')).dt.date
+    
+    praces['Surface'] = praces['Surface'].str.upper()
+    praces['FIN'] = praces.apply(lambda row: (row['Starters'] if (isinstance(row['FIN'], str) or (np.isnan(row['FIN Adj']))) else row['FIN Adj']) if isinstance(row['FIN'], str) else row['FIN'], axis=1)
+    praces['RaceScore'] = praces.apply(lambda row: 100 + 100 * (0.5 - float(row['FIN'])/row['Starters']) * min(row['Starters'] ** 0.5/5, 1), axis=1)
+    praces['Date'] = praces['Date'].apply(lambda x: pd.to_datetime(str(int(x)) if isinstance(x, (float,int)) else x, format='%Y%m%d', errors='coerce')).dt.date
 
     # Initialize a list to store the data
     race_shape_data = []
@@ -205,7 +204,6 @@ if uploaded_file is not None:
     # Convert the list to a DataFrame
     race_shape = pd.DataFrame(race_shape_data)
 
-    @st.cache_data
     def get_call_data(race_shape, races, race, call):
         # Get the data
         call_data = race_shape[(race_shape['Race'] == race) & (race_shape['Call'] == call)]
@@ -256,6 +254,7 @@ if uploaded_file is not None:
 
         ax.axis('off')
         plt.savefig('data.png') 
+
 
     @st.cache_data
     def get_hs(race, races, horses, is_wet, off_turf, running_horses):
@@ -309,7 +308,7 @@ if uploaded_file is not None:
             pypar = 0 if np.isnan(row1['PYSpdB']/parSpd) else row1['PYSpdB']/parSpd
             trackpar = 0 if np.isnan(row1['TrkSpdB']/parSpd) else row1['TrkSpdB']/parSpd
             try:
-                parscore = (surfpar * 3 + distpar * 3 + cypar * 2 + pypar + trackpar * 2) / (np.sum(3 if surfpar > 0 else 0) + np.sum(3 if distpar > 0 else 0) + np.sum(2 if cypar  > 0 else 0) + np.sum(1 if pypar  > 0 else 0)+ np.sum(2 if trackpar > 0 else 0))
+                parscore = (surfpar * 5 + distpar * 3 + cypar * 5 + pypar + trackpar * 2) / (np.sum(5 if surfpar > 0 else 0) + np.sum(3 if distpar > 0 else 0) + np.sum(5 if cypar  > 0 else 0) + np.sum(1 if pypar  > 0 else 0)+ np.sum(2 if trackpar > 0 else 0))
             except:
                 parscore = np.nan
             try:
@@ -426,7 +425,7 @@ if uploaded_file is not None:
     @st.cache_data
     def get_data(dataframe):
         return dataframe
-        
+    
     def highlight_cells_condition(row):
         background_colors = {
             1: "red", 2: "white", 3: "blue", 4: "yellow", 5: "green",
@@ -597,5 +596,4 @@ if uploaded_file is not None:
         if tj_show == 'Yes': 
             st.write(f'{horse_name} T/J Stats:')
             st.dataframe(tjdf[(tjdf['Race'] == race_choice) & (tjdf['PP'] == horse)], hide_index = True)
-
 
